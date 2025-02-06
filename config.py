@@ -12,6 +12,9 @@ class RunConfig(BaseModel):
 class ApiPrefix (BaseModel):
     prefix: str = "/api"
     user_prefix: str = "/user"
+    project_prefix: str = "/project"
+    prof_prefix: str = "/prof"
+
 
 class DatabaseConfig(BaseModel): 
     url: PostgresDsn

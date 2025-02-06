@@ -3,92 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Форма ввода данных</title>
+    <title>Вход</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
         }
-        .form-container {
-            max-width: 500px;
-            margin: 50px auto;
+        .container {
+            background: white;
             padding: 20px;
-            border: 1px solid #ccc;
             border-radius: 10px;
-            background-color: #f9f9f9;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
         input {
             width: 100%;
             padding: 10px;
-            margin-bottom: 10px;
+            margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 5px;
         }
         button {
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
+            background-color: #28a745;
             color: white;
             border: none;
+            padding: 10px 15px;
             border-radius: 5px;
+            cursor: pointer;
         }
-        .form-container label {
+        button:disabled {
+            background-color: gray;
+            cursor: not-allowed;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+        }
+        .register {
             margin-top: 10px;
+            display: block;
+            color: #007bff;
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
 
-<div class="form-container">
-    <h2>Введите ваши данные</h2>
-    <form id="dataForm" method="post" action="/submit" enctype="application/json">
-        <label for="name">Имя:</label>
-        <input type="text" id="name" name="name" required pattern="[A-Za-zА-Яа-яЁё\s]+" title="Только буквы и пробелы">
+    <div class="container">
+        <h2>Вход</h2>
+        <input type="email" id="email" placeholder="Введите почту" required>
+        <p id="error-message" class="error"></p>
+        <button id="login-button" disabled>Войти</button>
+        <a href="http://localhost:8000/register" class="register">Зарегистрироваться</a>
+    </div>
 
-        <label for="surname">Фамилия:</label>
-        <input type="text" id="surname" name="surname" required pattern="[A-Za-zА-Яа-яЁё\s]+" title="Только буквы и пробелы">
+    <script>
+        const emailInput = document.getElementById("email");
+        const loginButton = document.getElementById("login-button");
+        const errorMessage = document.getElementById("error-message");
 
-        <label for="phone">Номер телефона:</label>
-        <input type="tel" id="phone" name="phone" required pattern="^\+7\(\d{3}\)\d{3}-\d{2}-\d{2}$" title="Формат: +7(XXX)XXX-XX-XX">
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
 
-        <label for="birth_date">Дата рождения:</label>
-        <input type="date" id="birth_date" name="birth_date" required>
-
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-
-        <label for="profession">Профессия:</label>
-        <input type="text" id="profession" name="profession" required>
-
-        <label for="experience">Стаж работы (в годах):</label>
-        <input type="number" id="experience" name="experience" required min="0">
-
-        <button type="submit">Отправить</button>
-    </form>
-</div>
-
-<script>
-    document.getElementById('dataForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        const formData = new FormData(this);
-        const data = {};
-        formData.forEach((value, key) => {
-            data[key] = value;
+        emailInput.addEventListener("input", () => {
+            if (validateEmail(emailInput.value)) {
+                loginButton.disabled = false;
+                errorMessage.textContent = "";
+            } else {
+                loginButton.disabled = true;
+                errorMessage.textContent = "Введите корректный email";
+            }
         });
-        fetch('/api/user/submit', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.text())
-        .then(html => {
-            document.body.innerHTML = html;
-        })
-        .catch(error => console.error('Ошибка:', error));
-    });
-</script>
+
+        loginButton.addEventListener("click", async () => {
+            const email = emailInput.value;
+
+            try {
+                const response = await fetch("http://localhost:8000/api/user/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.id && data.role !== undefined) {
+                    localStorage.setItem("user_id", data.id);
+                    localStorage.setItem("user_role", data.role);
+
+                    alert("Вход успешен! Ваш user_id и role сохранены.");
+                    window.location.href = "http://localhost:8000/";
+                } else {
+                    alert(data.message || "Ошибка входа");
+                }
+            } catch (error) {
+                console.error("Ошибка:", error);
+                alert("Ошибка подключения к серверу");
+            }
+        });
+    </script>
 
 </body>
 </html>

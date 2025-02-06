@@ -105,7 +105,7 @@ def upgrade() -> None:
         print("start reading file")
         lines = file.readlines()
         for line in lines:
-            op.execute("INSERT INTO professions (title) VALUES ('" + line + "')")
+            op.execute("INSERT INTO professions (title) VALUES ('" + line[:-1] + "')")
         op.execute("INSERT INTO users_roles (id, title) VALUES (1, 'Админ'), (2, 'Работник'), (3, 'ГИП')")
         op.execute("INSERT INTO users (first_name, second_name, phone, email, birthday, role_id) VALUES ('АДМИН', 'АДМИНЫЧ', '+7(999)999-99-99', 'admin@mail.ru', '1111-11-11', 1)")
     # ### end Alembic commands ###
