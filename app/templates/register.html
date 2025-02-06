@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .form-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .form-container label {
+            margin-top: 10px;
+            display: block;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <h2>Введите ваши данные</h2>
+    <form id="dataForm" method="post">
+        <label for="name">Имя:</label>
+        <input type="text" id="name" name="name" required pattern="[A-Za-zА-Яа-яЁё\s]+" title="Только буквы и пробелы">
+
+        <label for="surname">Фамилия:</label>
+        <input type="text" id="surname" name="surname" required pattern="[A-Za-zА-Яа-яЁё\s]+" title="Только буквы и пробелы">
+
+        <label for="phone">Номер телефона:</label>
+        <input type="tel" id="phone" name="phone" required pattern="^\+7\(\d{3}\)\d{3}-\d{2}-\d{2}$" title="Формат: +7(XXX)XXX-XX-XX">
+
+        <label for="birth_date">Дата рождения:</label>
+        <input type="date" id="birth_date" name="birth_date" required>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="role">Выберите роль:</label>
+        <select id="role" name="role" required>
+            <option value="worker">Работник</option>
+            <option value="gip">ГИП</option>
+        </select>
+
+        <div id="workerFields">
+            <label for="profession">Профессия:</label>
+            <select id="profession" name="profession"></select>
+
+            <label for="experience">Стаж работы (в годах):</label>
+            <input type="number" id="experience" name="experience" min="0">
+        </div>
+
+        <button type="submit">Отправить</button>
+    </form>
+</div>
+
+<script>
+    async function loadProfessions() {
+        try {
+            const response = await fetch("http://localhost:8000/api/prof/all");
+            const data = await response.json();
+
+            if (!data.profs || !Array.isArray(data.profs)) {
+                throw new Error("Неверный формат данных");
+            }
+
+            const professionSelect = document.getElementById("profession");
+            professionSelect.innerHTML = "";
+
+            data.profs.forEach(prof => {
+                const option = document.createElement("option");
+                option.value = prof.id;  
+                option.textContent = prof.title.trim();
+                professionSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Ошибка загрузки профессий:", error);
+        }
+    }
+
+    document.getElementById("role").addEventListener("change", function() {
+        const workerFields = document.getElementById("workerFields");
+        workerFields.style.display = this.value === "worker" ? "block" : "none";
+    });
+
+    document.getElementById("dataForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const formData = new FormData(this);
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    if (data.role === "gip") {
+        delete data.profession;
+        delete data.experience;
+    }
+
+    try {
+        const response = await fetch("/api/user/submit", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            window.location.href = "http://localhost:8000/login";
+        } else {
+            console.error("Ошибка регистрации", result);
+            alert("Ошибка регистрации: " + result.detail);
+        }
+    } catch (error) {
+        console.error("Ошибка:", error);
+    }
+});
+    loadProfessions();
+    document.getElementById("role").dispatchEvent(new Event("change"));
+</script>
+
+</body>
+</html>
