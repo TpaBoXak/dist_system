@@ -3,15 +3,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 
 from sqlalchemy import select
+from sqlalchemy import func
 
 from typing import Optional
 
 from app.dao import prof as prof_dao
-from app.dao import profects as project_dao
 from app.schemas.user import UserData, UserBase, UserDataBase, Worker, GIP
 from app.schemas.prof import ExperiancesData, ExperianceData
 from app.models.user import User, UserRole
 from app.models.profession import Experience
+from app.models.project import Project
 
 
 async def add_user(
@@ -67,6 +68,15 @@ async def login(
     return UserBase(id=user.id, role=user.role_id)
 
 
+async def get_count_proj_by_u(
+    session: AsyncSession,
+    user_id: int,
+) -> int:
+    stmt = select(func.count(Project.id)).where(Project.owner_id == user_id)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 async def get_user_info(
     session: AsyncSession,
     user: UserBase
@@ -91,8 +101,7 @@ async def get_user_info(
         user_info: Worker = Worker(**worker_data)
 
     elif user_bd.role_id == 3:
-        project_count = await project_dao.\
-                get_count_prof_by_u(session=session, user_id=user.id)
+        project_count = await get_count_proj_by_u(session=session, user_id=user.id)
         user_info: GIP = GIP(**user_info.model_dump(),
                 count_proj=project_count)
 
@@ -107,4 +116,28 @@ async def is_old_user(
     result = await session.execute(statement=stmt)
     user: User = result.scalar_one_or_none()
     if user: return True
+    return False
+
+
+async def is_gip(
+    session: AsyncSession,
+    user_id: int
+) -> bool:
+    user: User = await session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.role_id == 3:
+        return True
+    return False
+
+
+async def is_worker(
+    session: AsyncSession,
+    user_id: int
+) -> bool:
+    user: User = await session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.role_id == 2:
+        return True
     return False

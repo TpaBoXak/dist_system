@@ -92,5 +92,5 @@ async def user_info(
 async def user_info(
     session: AsyncSession = Depends(db_helper.session_getter),
 ) -> UserData:
-    
+        
     return 

@@ -21,6 +21,5 @@ class ProjectData(BaseModel):
     count_workers: int
     workers: list[Optional[LightWorker]]
 
-
 class AllProjectsData(BaseModel):
     projects: list[Optional[ProjectData]]

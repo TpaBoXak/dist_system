@@ -28,6 +28,9 @@
         .active-tab {
             background-color: #0056b3;
         }
+        .hidden {
+            display: none;
+        }
         .result-container {
             max-width: 700px;
             margin: 50px auto;
@@ -37,22 +40,8 @@
             background-color: white;
             text-align: left;
         }
-        .result-container p {
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-        .hidden {
-            display: none;
-        }
         .project-list {
             margin-top: 20px;
-        }
-        .project-list ul {
-            list-style: none;
-            padding: 0;
-        }
-        .project-list li {
-            margin: 10px 0;
         }
         .add-project-form {
             display: none;
@@ -63,9 +52,9 @@
 <body>
 
 <div class="tabs">
-    <div class="tab active-tab" id="tab-workers">Работники</div>
-    <div class="tab" id="tab-gips">ГИПы</div>
-    <div class="tab" id="tab-projects">Проекты</div>
+    <div class="tab active-tab" data-tab="workers">Работники</div>
+    <div class="tab" data-tab="gips">ГИПы</div>
+    <div class="tab" data-tab="projects">Проекты</div>
 </div>
 
 <div class="result-container">
@@ -76,33 +65,29 @@
     <p><strong>Дата рождения:</strong> <span id="birth_date"></span></p>
     <p><strong>Email:</strong> <span id="email"></span></p>
 
-    <div id="worker-info" class="hidden">
+    <div id="workers" class="hidden">
         <p><strong>Профессии и стаж работы:</strong></p>
         <ul id="profession-list"></ul>
     </div>
 
-    <div id="gip-info" class="hidden">
+    <div id="gips" class="hidden">
         <p><strong>Количество проектов:</strong> <span id="projects-count"></span></p>
     </div>
 
-    <div id="projects-info" class="hidden">
+    <div id="projects" class="hidden">
         <h3>Проекты:</h3>
-        <div class="project-list" id="project-list">
-            <ul></ul>
+        <div class="project-list">
+            <ul id="project-list"></ul>
         </div>
-
         <button id="add-project-button" class="hidden">Добавить проект</button>
-
         <div class="add-project-form" id="add-project-form">
             <h4>Добавить новый проект</h4>
             <label for="project-title">Название проекта:</label>
-            <input type="text" id="project-title" name="project-title" required><br><br>
+            <input type="text" id="project-title" required><br><br>
             <label for="project-desc">Описание проекта:</label>
-            <textarea id="project-desc" name="project-desc" required></textarea><br><br>
-
+            <textarea id="project-desc" required></textarea><br><br>
             <label for="project-workers">Выберите работников:</label>
-            <select id="project-workers" name="project-workers" multiple></select><br><br>
-
+            <select id="project-workers" multiple></select><br><br>
             <button id="submit-project">Сохранить проект</button>
         </div>
     </div>
@@ -112,165 +97,67 @@
     const userRole = localStorage.getItem("user_role");
     const userId = localStorage.getItem("user_id");
 
-    const nameElem = document.getElementById("name");
-    const surnameElem = document.getElementById("surname");
-    const phoneElem = document.getElementById("phone");
-    const birthDateElem = document.getElementById("birth_date");
-    const emailElem = document.getElementById("email");
-    const workerInfoElem = document.getElementById("worker-info");
-    const gipInfoElem = document.getElementById("gip-info");
-    const professionListElem = document.getElementById("profession-list");
-    const projectsCountElem = document.getElementById("projects-count");
-    const projectListElem = document.getElementById("project-list").querySelector("ul");
-    const addProjectButton = document.getElementById("add-project-button");
-    const addProjectForm = document.getElementById("add-project-form");
-    const submitProjectButton = document.getElementById("submit-project");
-    const projectTitleElem = document.getElementById("project-title");
-    const projectDescElem = document.getElementById("project-desc");
-    const projectWorkersElem = document.getElementById("project-workers");
-
-    async function fetchUserData() {
-        try {
-            const response = await fetch(`http://localhost:8000/api/user/info?id=${userId}&role=${userRole}`);
-            const data = await response.json();
-
-            nameElem.textContent = data.name;
-            surnameElem.textContent = data.surname;
-            phoneElem.textContent = data.phone;
-            birthDateElem.textContent = data.birth_date;
-            emailElem.textContent = data.email;
-
-            if (userRole == 2) {
-                workerInfoElem.classList.remove("hidden");
-                professionListElem.innerHTML = "";
-                data.profs.forEach((profession) => {
-                    const listItem = document.createElement("li");
-                    listItem.textContent = `${profession.title} — ${profession.years} лет`;
-                    professionListElem.appendChild(listItem);
-                });
-            } else if (userRole == 3) {
-                gipInfoElem.classList.remove("hidden");
-                projectsCountElem.textContent = data.projects_count;
+    document.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", function() {
+            document.querySelectorAll(".tab").forEach(t => t.classList.remove("active-tab"));
+            this.classList.add("active-tab");
+            
+            document.querySelectorAll(".result-container > div").forEach(div => div.classList.add("hidden"));
+            document.getElementById(this.getAttribute("data-tab")).classList.remove("hidden");
+            
+            if (this.getAttribute("data-tab") === "projects" && userRole == 3) {
+                document.getElementById("add-project-button").classList.remove("hidden");
             } else {
-                workerInfoElem.classList.add("hidden");
-                gipInfoElem.classList.add("hidden");
+                document.getElementById("add-project-button").classList.add("hidden");
             }
-        } catch (error) {
-            console.error("Ошибка получения данных:", error);
-            alert("Не удалось получить данные пользователя");
-        }
-    }
+        });
+    });
 
-    async function fetchProjects() {
-        try {
-            const response = await fetch("http://localhost:8000/api/project/all");
-            const data = await response.json();
-
-            if (data.projects && data.projects.length > 0) {
-                data.projects.forEach((project) => {
-                    const listItem = document.createElement("li");
-                    listItem.textContent = `${project.title} - ${project.desc}`;
-                    projectListElem.appendChild(listItem);
+    document.getElementById("add-project-button").addEventListener("click", function() {
+        document.getElementById("add-project-form").style.display = "block";
+        fetch('http://localhost:8000/api/user/workers')
+            .then(response => response.json())
+            .then(data => {
+                const workerSelect = document.getElementById("project-workers");
+                workerSelect.innerHTML = '';
+                data.workers.forEach(worker => {
+                    const option = document.createElement("option");
+                    option.value = worker.id;
+                    option.textContent = worker.name;
+                    workerSelect.appendChild(option);
                 });
-            }
-        } catch (error) {
-            console.error("Ошибка получения проектов:", error);
-            alert("Не удалось получить проекты");
-        }
-    }
+            })
+            .catch(error => console.error('Ошибка при загрузке работников:', error));
+    });
 
-    async function fetchWorkers() {
-        try {
-            const response = await fetch("http://localhost:8000/api/user/workers");
-            const data = await response.json();
-
-            data.workers.forEach((worker) => {
-                const option = document.createElement("option");
-                option.value = worker.id;
-                option.textContent = worker.name;
-                projectWorkersElem.appendChild(option);
-            });
-        } catch (error) {
-            console.error("Ошибка получения работников:", error);
-        }
-    }
-
-    async function addProject() {
-        const title = projectTitleElem.value;
-        const desc = projectDescElem.value;
-        const workers = Array.from(projectWorkersElem.selectedOptions).map(option => option.value);
+    document.getElementById("submit-project").addEventListener("click", function() {
+        const title = document.getElementById("project-title").value;
+        const description = document.getElementById("project-desc").value;
+        const selectedWorkers = Array.from(document.getElementById("project-workers").selectedOptions)
+            .map(option => option.value);
 
         const projectData = {
-            title,
-            desc,
-            workers
+            title: title,
+            description: description,
+            workers: selectedWorkers
         };
 
-        try {
-            const response = await fetch("http://localhost:8000/api/project", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(projectData),
-            });
-
-            if (response.ok) {
-                alert("Проект добавлен успешно!");
-                fetchProjects();
-                addProjectForm.reset();
-                addProjectForm.style.display = "none";
-            } else {
-                alert("Ошибка при добавлении проекта");
-            }
-        } catch (error) {
-            console.error("Ошибка при добавлении проекта:", error);
-        }
-    }
-
-    document.getElementById("tab-workers").addEventListener("click", function() {
-        setActiveTab("tab-workers");
+        fetch('http://localhost:8000/api/projects', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(projectData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Проект успешно создан:', data);
+            alert('Проект успешно создан!');
+        })
+        .catch((error) => {
+            console.error('Ошибка при создании проекта:', error);
+        });
     });
-
-    document.getElementById("tab-gips").addEventListener("click", function() {
-        setActiveTab("tab-gips");
-    });
-
-    document.getElementById("tab-projects").addEventListener("click", function() {
-        setActiveTab("tab-projects");
-    });
-
-    function setActiveTab(tabId) {
-        const tabs = document.querySelectorAll(".tab");
-        tabs.forEach(tab => tab.classList.remove("active-tab"));
-        document.getElementById(tabId).classList.add("active-tab");
-
-        if (tabId === "tab-workers") {
-            workerInfoElem.classList.remove("hidden");
-            gipInfoElem.classList.add("hidden");
-            addProjectButton.classList.add("hidden");
-        } else if (tabId === "tab-gips") {
-            workerInfoElem.classList.add("hidden");
-            gipInfoElem.classList.remove("hidden");
-            addProjectButton.classList.add("hidden");
-        } else if (tabId === "tab-projects") {
-            workerInfoElem.classList.add("hidden");
-            gipInfoElem.classList.add("hidden");
-            addProjectButton.classList.remove("hidden");
-        }
-    }
-
-    addProjectButton.addEventListener("click", function() {
-        addProjectForm.style.display = "block";
-    });
-
-    submitProjectButton.addEventListener("click", addProject);
-
-    fetchUserData();
-    fetchProjects();
-    if (userRole == 1 || userRole == 2) {
-        fetchWorkers();
-    }
 
 </script>
 

@@ -6,11 +6,12 @@ from sqlalchemy import func
 
 from typing import Optional
 
-from app.schemas.project import AllProjectsData, ProjectData
+from app.schemas.project import AllProjectsData, ProjectData, ProjectAddData
 from app.schemas.user import LightWorker
 from app.schemas.prof import ExperianceData
 from app.models.project import Project, ProjectWorker
 from app.models.profession import Experience, Profession
+from app.dao import users as users_dao
 
 
 async def get_all_projects(
@@ -63,3 +64,53 @@ async def get_workrers_info_by_proj(
         worker.profs.append(ExperianceData(title=row[3], years=row[4]))
 
     return workers
+
+async def add_project(
+    session: AsyncSession, owner_id: int, project_data: ProjectAddData
+) -> Optional[int]:
+    try:
+        project: Project = Project()
+        project.desc = project_data.desc
+        project.owner_id = owner_id
+        project.title = project_data.title
+        session.add(project)
+    except:
+        await session.rollback()
+        return None
+    else:
+        await session.commit()
+        await session.refresh(project)
+        return project.id
+    
+
+async def delete_project(
+    session: AsyncSession, project_id: int
+) -> bool:
+    try:
+        project: Project = await session.get(Project, project_id)
+        await session.delete(project)
+    except:
+        await session.rollback()
+        return False
+    else:
+        await session.commit()
+        return True
+    
+
+async def add_worker(
+    session: AsyncSession, workers_ids: list[int], project_id: int
+) -> bool:
+    try:
+        for worker_id in workers_ids:
+            if not users_dao.is_worker(session=session, user_id=worker_id):
+                return False
+            project_work: ProjectWorker = ProjectWorker()
+            project_work.project_id = project_id
+            project_work.worker_id = worker_id
+            session.add(project_work)
+    except:
+        await session.rollback()
+        return False
+    else:
+        await session.commit()
+        return True
