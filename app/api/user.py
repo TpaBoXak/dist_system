@@ -18,6 +18,7 @@ from app.schemas.user import (
     Worker,
     GIP,
     UserDataBase,
+    UserNameId
 )
 from app import db_helper
 from app.dao import users as user_dao
@@ -33,7 +34,7 @@ async def submit_form(
 ):
     try:
         validated_user = await UserData.validate(user_data)
-        if user_dao.is_old_user(session=session, email=user_data.email):
+        if await user_dao.is_old_user(session=session, email=user_data.email):
             raise HTTPException(status_code=500, detail="Такой пользователь существует")
         user: User = await user_dao.\
                 add_user(session=session, user_data=validated_user)
@@ -88,9 +89,15 @@ async def user_info(
     return user_info
 
 
-@router.get("/workers")
-async def user_info(
+@router.get("/workers", response_model=list[UserNameId])
+async def workers_info(
     session: AsyncSession = Depends(db_helper.session_getter),
-) -> UserData:
-        
-    return 
+) -> list[UserNameId]:
+    return await user_dao.get_workers(session=session)
+
+
+@router.get("/gips", response_model=list[GIP])
+async def gips_info(
+    session: AsyncSession = Depends(db_helper.session_getter)
+) -> list[GIP]:
+    return await user_dao.get_gips(session=session)

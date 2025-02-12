@@ -16,6 +16,11 @@ class UserDataBase(BaseModel):
     email: EmailStr
     role: int
 
+
+class UserNameId(BaseModel):
+    id: int
+    name: str
+
 class Worker(UserDataBase, ExperiancesData):
     pass
 

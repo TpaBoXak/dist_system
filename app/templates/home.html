@@ -42,6 +42,16 @@
         }
         .project-list {
             margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .project-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: calc(50% - 10px);
         }
         .add-project-form {
             display: none;
@@ -52,33 +62,40 @@
 <body>
 
 <div class="tabs">
-    <div class="tab active-tab" data-tab="workers">Работники</div>
+    <div class="tab active-tab" data-tab="my-info">Моя информация</div>
+    <div class="tab" data-tab="workers">Работники</div>
     <div class="tab" data-tab="gips">ГИПы</div>
     <div class="tab" data-tab="projects">Проекты</div>
 </div>
 
 <div class="result-container">
-    <h2>Вы ввели следующие данные:</h2>
-    <p><strong>Имя:</strong> <span id="name"></span></p>
-    <p><strong>Фамилия:</strong> <span id="surname"></span></p>
-    <p><strong>Номер телефона:</strong> <span id="phone"></span></p>
-    <p><strong>Дата рождения:</strong> <span id="birth_date"></span></p>
-    <p><strong>Email:</strong> <span id="email"></span></p>
+    <div id="my-info">
+        <h2>Моя информация</h2>
+        <p><strong>Имя:</strong> <span id="user-name"></span></p>
+        <p><strong>Фамилия:</strong> <span id="user-surname"></span></p>
+        <p><strong>Телефон:</strong> <span id="user-phone"></span></p>
+        <p><strong>Дата рождения:</strong> <span id="user-birth_date"></span></p>
+        <p><strong>Email:</strong> <span id="user-email"></span></p>
+        <div id="user-profs" class="hidden">
+            <p><strong>Профессии:</strong></p>
+            <ul id="prof-list"></ul>
+        </div>
+        <p id="user-projects" class="hidden"><strong>Количество проектов:</strong> <span id="count-projects"></span></p>
+    </div>
 
     <div id="workers" class="hidden">
-        <p><strong>Профессии и стаж работы:</strong></p>
-        <ul id="profession-list"></ul>
+        <h2>Работники</h2>
+        <ul id="worker-list"></ul>
     </div>
 
     <div id="gips" class="hidden">
-        <p><strong>Количество проектов:</strong> <span id="projects-count"></span></p>
+        <h2>Руководители проектов (ГИПы)</h2>
+        <ul id="gip-list"></ul>
     </div>
 
     <div id="projects" class="hidden">
         <h3>Проекты:</h3>
-        <div class="project-list">
-            <ul id="project-list"></ul>
-        </div>
+        <div class="project-list" id="project-list"></div>
         <button id="add-project-button" class="hidden">Добавить проект</button>
         <div class="add-project-form" id="add-project-form">
             <h4>Добавить новый проект</h4>
@@ -113,14 +130,104 @@
         });
     });
 
+    fetch(`http://localhost:8000/api/user/info?id=${userId}&role=${userRole}`)
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("user-name").textContent = data.name;
+        document.getElementById("user-surname").textContent = data.surname;
+        document.getElementById("user-phone").textContent = data.phone;
+        document.getElementById("user-birth_date").textContent = data.birth_date;
+        document.getElementById("user-email").textContent = data.email;
+        
+        if (data.profs) {
+            document.getElementById("user-profs").classList.remove("hidden");
+            const profList = document.getElementById("prof-list");
+            profList.innerHTML = data.profs.map(prof => `<li>${prof.title} (${prof.years} лет)</li>`).join('');
+        }
+        
+        if (data.count_proj !== undefined) {
+            document.getElementById("user-projects").classList.remove("hidden");
+            document.getElementById("count-projects").textContent = data.count_proj;
+        }
+    })
+    .catch(error => console.error('Ошибка загрузки информации пользователя:', error));
+
+    fetch('http://localhost:8000/api/user/workers')
+    .then(response => response.json())
+    .then(data => {
+        const workerList = document.getElementById("worker-list");
+        workerList.innerHTML = data.map(worker => `<li>${worker.name}</li>`).join('');
+    })
+    .catch(error => console.error('Ошибка загрузки работников:', error));
+
+    document.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", function() {
+            document.querySelectorAll(".tab").forEach(t => t.classList.remove("active-tab"));
+            this.classList.add("active-tab");
+            
+            document.querySelectorAll(".result-container > div").forEach(div => div.classList.add("hidden"));
+            document.getElementById(this.getAttribute("data-tab")).classList.remove("hidden");
+        });
+    });
+
+    fetch('http://localhost:8000/api/user/gips')
+    .then(response => response.json())
+    .then(data => {
+        const gipList = document.getElementById("gip-list");
+        gipList.innerHTML = data.map(gip => `
+            <li>
+                <strong>Имя:</strong> ${gip.name} ${gip.surname}<br>
+                <strong>Телефон:</strong> ${gip.phone}<br>
+                <strong>Дата рождения:</strong> ${gip.birth_date}<br>
+                <strong>Email:</strong> ${gip.email}<br>
+                <strong>Количество проектов:</strong> ${gip.count_proj}
+            </li>
+        `).join('');
+    })
+    .catch(error => console.error('Ошибка загрузки ГИПов:', error));
+
+    fetch('http://localhost:8000/api/project/all', {
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const projectList = document.getElementById("project-list");
+        projectList.innerHTML = '';
+
+        data.projects.forEach(project => {
+            const projectCard = document.createElement("div");
+            projectCard.classList.add("project-card");
+            projectCard.innerHTML = `
+                <h3>${project.title}</h3>
+                <p><strong>Владелец:</strong> ${project.owner}</p>
+                <p><strong>Описание:</strong> ${project.desc}</p>
+                <p><strong>Количество работников:</strong> ${project.count_workers}</p>
+                <ul>
+                    ${project.workers.map(worker => `
+                        <li>
+                            <strong>${worker.fullname}</strong>
+                            <ul>
+                                ${worker.profs.map(prof => `<li>${prof.title} (${prof.years} лет)</li>`).join('')}
+                            </ul>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+            projectList.appendChild(projectCard);
+        });
+    })
+    .catch(error => console.error('Ошибка загрузки проектов:', error));
+
     document.getElementById("add-project-button").addEventListener("click", function() {
         document.getElementById("add-project-form").style.display = "block";
+
         fetch('http://localhost:8000/api/user/workers')
             .then(response => response.json())
             .then(data => {
                 const workerSelect = document.getElementById("project-workers");
                 workerSelect.innerHTML = '';
-                data.workers.forEach(worker => {
+
+                data.forEach(worker => {
                     const option = document.createElement("option");
                     option.value = worker.id;
                     option.textContent = worker.name;
@@ -134,18 +241,19 @@
         const title = document.getElementById("project-title").value;
         const description = document.getElementById("project-desc").value;
         const selectedWorkers = Array.from(document.getElementById("project-workers").selectedOptions)
-            .map(option => option.value);
+            .map(option => parseInt(option.value, 10));
 
         const projectData = {
             title: title,
-            description: description,
+            desc: description,
             workers: selectedWorkers
         };
 
-        fetch('http://localhost:8000/api/projects', {
+        fetch('http://localhost:8000/api/project/add', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'User-id': userId
             },
             body: JSON.stringify(projectData)
         })

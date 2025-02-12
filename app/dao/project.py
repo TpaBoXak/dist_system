@@ -31,7 +31,11 @@ async def get_all_projects(
     for row in projects_info:
         projects.append(ProjectData(
             owner=f"{row[1]} {row[2]}", title=row[3], desc=row[4],
-            count_workers=row[5], workers=await get_workrers_info_by_proj(row[0])
+            count_workers=row[5], workers=\
+                await get_workrers_info_by_proj(
+                    session=session,
+                    project_id=row[0]
+                )
         ))
 
     return AllProjectsData(projects=projects)

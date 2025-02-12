@@ -31,7 +31,7 @@ async def submit_form(
 @router.post("/add")
 async def add_project(
     project_data: ProjectAddData,
-    user_id: int = Header(...),
+    user_id: int = Header(..., alias="User-Id"),
     session: AsyncSession = Depends(db_helper.session_getter),
 ):
     if not await user_dao.is_gip(session=session, user_id=user_id):

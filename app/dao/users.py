@@ -8,7 +8,9 @@ from sqlalchemy import func
 from typing import Optional
 
 from app.dao import prof as prof_dao
-from app.schemas.user import UserData, UserBase, UserDataBase, Worker, GIP
+from app.schemas.user import (
+    UserData, UserBase, UserDataBase, Worker, GIP, UserNameId
+)
 from app.schemas.prof import ExperiancesData, ExperianceData
 from app.models.user import User, UserRole
 from app.models.profession import Experience
@@ -141,3 +143,46 @@ async def is_worker(
     if user.role_id == 2:
         return True
     return False
+
+
+async def get_workers(
+    session: AsyncSession
+) -> list[UserNameId]:
+    stmt = select(User.id, User.second_name, User.first_name).\
+        where(User.role_id == 2)
+    result = await session.execute(statement=stmt)
+    users_info: list[tuple] = result.all()
+    users: list[UserNameId] = []
+    for row in users_info:
+        users.append(
+            UserNameId(id=row[0], name=f"{row[1]} {row[2]}")
+        )
+
+    return users
+
+
+async def get_gips(
+    session: AsyncSession
+) -> list[GIP]:
+    stmt = select(
+        User.second_name, User.first_name, User.phone,
+        User.birthday, User.email, User.role_id, User.id
+    ).where(User.role_id == 3)
+    result = await session.execute(statement=stmt)
+    gips_info: list[tuple] = result.all()
+    gips: list[GIP] = []
+    for row in gips_info:
+        gips.append(GIP(
+            surname=row[0],
+            name=row[1],
+            phone=row[2],
+            birth_date=row[3],
+            email=row[4],
+            role=row[5],
+            count_proj= await get_count_proj_by_u(
+                session=session,
+                user_id=row[6]
+            )
+        ))
+
+    return gips
