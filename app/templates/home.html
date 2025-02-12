@@ -95,6 +95,7 @@
 
     <div id="projects" class="hidden">
         <h3>Проекты:</h3>
+        <input type="text" id="project-search" placeholder="Поиск по названию..." oninput="filterProjects()">
         <div class="project-list" id="project-list"></div>
         <button id="add-project-button" class="hidden">Добавить проект</button>
         <div class="add-project-form" id="add-project-form">
@@ -217,6 +218,15 @@
         });
     })
     .catch(error => console.error('Ошибка загрузки проектов:', error));
+
+    function filterProjects() {
+    const searchValue = document.getElementById("project-search").value.toLowerCase();
+    document.querySelectorAll(".project-card").forEach(card => {
+        const projectTitle = card.querySelector("h3").textContent.toLowerCase();
+        card.style.display = searchValue === "" || projectTitle.startsWith(searchValue) ? "block" : "none";
+    });
+}
+
 
     document.getElementById("add-project-button").addEventListener("click", function() {
         document.getElementById("add-project-form").style.display = "block";
