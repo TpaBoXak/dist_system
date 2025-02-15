@@ -1,10 +1,23 @@
 services:
-  pg:
+
+  postgresql_01:
     image: postgres
+    container_name: postgresql_01
+    restart: always
+    volumes:
+      - ./postgresql_01:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: hehehunter
-      POSTGRES_USER: Arseniy
       POSTGRES_PASSWORD: 12345
     ports:
       - "5434:5432"
-  
+
+  postgresql_02:
+    image: postgres
+    container_name: postgresql_02
+    restart: always
+    volumes:
+      - ./postgresql_02/:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: 12345
+    ports:
+      - "5435:5432"
